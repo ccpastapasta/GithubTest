@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <title>書籍資訊</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+
+    <!-- Additional CSS Files -->
+    <link rel="stylesheet" href="assets/css/fontawesome.css">
+    <link rel="stylesheet" href="assets/css/templatemo-plot-listing.css">
+    <link rel="stylesheet" href="assets/css/animated.css">
+    <link rel="stylesheet" href="assets/css/owl.css">
+
+    <style>
+    /* 讓下拉選單在滑鼠移入或移出時觸發 */
+    .dropdown:hover .dropdown-menu {
+      display: block;
+    }
+
+    .dropdown-menu {
+      margin-top: 0; /* 調整下拉選單位置 */
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ***** Preloader Start ***** -->
+  <div id="js-preloader" class="js-preloader">
+    <div class="preloader-inner">
+      <span class="dot"></span>
+      <div class="dots">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+  </div>
+  <!-- ***** Preloader End ***** -->
+
+  <!-- ***** Header Area Start ***** -->
+  <header class="header-area header-sticky wow slideInDown" data-wow-duration="0.75s" data-wow-delay="0s">
+    <div class="container">
+      <div class="row">
+          <nav class="main-nav">
+            <!-- ***** Logo Start ***** -->
+            <a href="guest.php" class="logo">
+              <img src="assets/images/logo.jpg">
+            </a>
+            <!-- ***** Logo End ***** -->
+            <!-- ***** Menu Start ***** -->
+
+			<ul class="nav">
+              <li><a href="guest.php">首頁</a></li>
+              <li><a href="search.php">查詢</a></li>
+			  <li><a href="login.php">登入</a></li>
+
+              <li></li>
+            </ul>        
+            <a class='menu-trigger'>
+                <span>Menu</span>
+            </a>
+            
+              
+            <!-- ***** Menu End ***** -->
+          </nav>
+        </div>
+      </div>
+    </div>
+  </header>
+  <!-- ***** Header Area End ***** -->
+
+  <div class="page-heading">
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-8">
+          <div class="top-text header-text">
+            <h2>書籍資訊</h2>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ***** Login Start ***** -->
+</br>
+<?php
+  if (isset($_POST['result1'])) {
+    $_SESSION['result1'] = true; // 設定 Session
+    $_SESSION['title'] = $_POST['title']; // 儲存書籍 ID 到 Session
+    $title = $_SESSION['title'];
+} else {
+    $_SESSION['result1'] = false; // 如果未提交，設為 false
+}
+
+  // 建立MySQL的資料庫連接 
+  $link = mysqli_connect("localhost", "root", "a0984282532", "library") or die("無法開啟MySQL資料庫連接!");
+
+  // 設置UTF8編碼
+  mysqli_query($link, 'SET NAMES utf8');
+  $title = $_SESSION['title'];
+  // 從資料庫中選取書籍資訊
+  $sql = "SELECT bId, title, author, publisher, publication_year, isbn, category, status, image, number, reservation_number, description 
+  FROM book WHERE title = '$title'";
+  $result = mysqli_query($link, $sql);
+  $row = mysqli_fetch_assoc($result);
+  $title = $row['title'];
+?>
+
+  <main>
+	  <div class="container">
+		  <h1 class="mt-5">
+        <?php
+          echo htmlspecialchars($row['title']);    
+        ?>  
+      </h1>
+		</div>
+		<hr>
+	
+    <div class="container">
+	    <div class="row">
+        <div class="col-md-4">
+			    <br><div class="container">
+            <p class="lead mb-4">
+              <?php
+                echo "<img src='" . htmlspecialchars($row['image']) . "' alt='書籍封面' style='width:250px; height:250px;'>";  
+              ?>  
+            </p>
+				  </div>
+			  </div>
+		    <div class="col-md-8">
+			    <br><div class="container">
+          <?php
+				    echo "<table class='table caption-top table-hover'>";
+						echo "<tbody>";
+						echo "<tr><th style='width: 150px;'>作者</th><th>" . htmlspecialchars($row['author']) . "</th>";
+            echo "<tr><th>出版者</th><th>" . htmlspecialchars($row['publisher']) . "</th>";
+            echo "<tr><th>出版年</th><th>" . htmlspecialchars($row['publication_year']) . "</th>";
+            echo "<tr><th>ISBN</th><th>" . htmlspecialchars($row['isbn']) . "</th>";
+            echo "<tr><th>分類</th><th>" . htmlspecialchars($row['category']) . "</th>";
+            echo "<tr><th>書籍簡介</th><th>" . nl2br(htmlspecialchars($row['description'])) . "</th>";
+            echo "</tbody>";
+            echo "</table>";
+            ?> 
+            </br>
+            </br>
+            <?php
+// 查詢相同書名的所有書籍
+$query_books = "SELECT * FROM book WHERE title = '$title'";
+$result_books = mysqli_query($link, $query_books);
+
+// 初始化庫存計數
+$stockCount = 1;
+
+// 遍歷每本書並顯示
+while ($row_book = mysqli_fetch_assoc($result_books)) {
+    $bId = $row_book['bId']; // 獲取該書的 bId
+    
+    // 查詢該書的借閱和預訂情況
+    $query_loan = "SELECT COUNT(*) AS borrowing_count FROM loan WHERE bId = '$bId' AND return_date IS NULL";
+    $result_loan = mysqli_query($link, $query_loan);
+    $row_loan = mysqli_fetch_assoc($result_loan);
+    $isBorrowed = $row_loan['borrowing_count'] > 0;
+
+    // 顯示庫存標籤
+    ?>
+    
+    </br>
+    
+    <?php
+    echo "<h3>庫存{$stockCount}</h3>";
+    echo "<table class='table caption-top table-hover'>";
+    echo "<tbody>";
+    echo "<tr><th>借閱狀況</th><th style='color: red; text-align: left;'>" . htmlspecialchars($row_book['status']) . "</th>";
+    echo "<tr><th>預訂人數</th><th>" . htmlspecialchars($row_book['reservation_number']) . "</th>";
+
+    echo "</tr>";
+    // 更新庫存計數
+    $stockCount++; 
+    echo "</tbody>";
+    echo "</table>";
+}
+           
+?>
+			 </td>
+      </div>
+			</div>
+		</div>
+	</div>
+	            
+	</main>
+            
+  <?php
+    // 關閉資料庫連接
+    mysqli_close($link);
+  ?>
+  
+  </br>
+  </br>
+
+  <!-- ***** Login End ***** -->
+
+  <footer>
+        <div class="col-lg-12">
+          <div class="row" style="text-align: center;">
+            <p><b>「書籍是全世界的營養品。生活裡沒有書籍，就好像沒有陽光，智慧沒有書籍，就好像鳥兒沒有翅膀。」—— 威廉・莎士比亞</b></p>
+            <p>Copyright © 2021 Plot Listing Co., Ltd. All Rights Reserved.
+            <br>
+         Design: <a rel="nofollow" href="https://templatemo.com" title="CSS Templates">TemplateMo</a></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+
+  <!-- Scripts -->
+  <script src="vendor/jquery/jquery.min.js"></script>
+  <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/owl-carousel.js"></script>
+  <script src="assets/js/animation.js"></script>
+  <script src="assets/js/imagesloaded.js"></script>
+  <script src="assets/js/custom.js"></script>
+
+</body>
+</html>
